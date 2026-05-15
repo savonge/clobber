@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <span class="title">Clobber</span>
+    <label class="toggle">
+      <input type="checkbox" id="toggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+  <div class="status" id="status">Checking…</div>
+  <div class="section">
+    <label class="label">Deploy hook URL</label>
+    <input type="text" id="hook-url" placeholder="https://api.vercel.com/v1/…" spellcheck="false">
+  </div>
+  <div class="section">
+    <label class="label">Project folder</label>
+    <div class="folder" id="folder">Not set</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

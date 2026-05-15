@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Clobber",
+  "version": "1.0.0",
+  "description": "Cmd-click to edit text and images on your own static sites. Saves write back to local files.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "icons": {
+    "16": "icons/clobber-16.png",
+    "48": "icons/clobber-48.png",
+    "128": "icons/clobber-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/clobber-16.png",
+      "48": "icons/clobber-48.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/clobber.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "host_permissions": [
+    "http://localhost:*/*"
+  ]
+}

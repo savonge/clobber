@@ -1,13 +1,25 @@
 # Clobber
 
-A Chrome extension that lets you Cmd-click any text or image on your own static site and edit it in place. Changes write back to your local files. No CMS, no build step, no framework required.
+Cmd-click to edit text and images on your own static sites. Changes write back to your local files. No CMS, no build step, no framework required.
 
 ![Chrome Web Store](https://img.shields.io/badge/chrome-extension-4285F4?logo=googlechrome&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
+## Two ways to use Clobber
+
+### 1. Chrome Extension
+Install the extension, tag your HTML with `data-edit` attributes, and edit visually. Best for ongoing use — always available, no setup per session.
+
+### 2. Claude Code Skill (`/clobber`)
+Type `/clobber` in Claude Code and it sets everything up automatically — scans your HTML, tags elements, drops in the editor script and save server, and starts it. Type `/clobber off` to cleanly reverse everything. Best for quick editing sessions.
+
+Both paths use the same `data-edit` convention, the same editing UX, and the same Node helper for saves.
+
+---
+
 ## What it does
 
-Tag elements in your HTML with `data-edit="key.name"`, install the extension, and:
+Tag elements in your HTML with `data-edit="key.name"`, then edit via the extension or the `/clobber` skill:
 
 - **Cmd-click text** to edit it inline (contenteditable with a Done pill)
 - **Cmd-click an image** to replace it via the native file picker
@@ -33,7 +45,7 @@ Clobber avoids both by never touching the live DOM at save time. Instead, it fet
 ### From source (development)
 
 ```
-git clone https://github.com/lironross/clobber.git
+git clone https://github.com/savonge/clobber.git
 ```
 
 1. Open `chrome://extensions` in Chrome, Edge, Arc, or Brave
@@ -191,7 +203,7 @@ These are all reasonable future additions. v1 ships the core editing loop.
 
 ```
 clobber/
-├── src/                          # Extension source (load this as unpacked)
+├── src/                          # Chrome extension (Manifest V3)
 │   ├── manifest.json
 │   ├── content/
 │   │   └── clobber.js            # Content script: the editor
@@ -205,12 +217,16 @@ clobber/
 │       ├── clobber-16.png
 │       ├── clobber-48.png
 │       └── clobber-128.png
+├── skill/                        # Claude Code skill (/clobber)
+│   ├── SKILL.md                  # Skill definition
+│   └── clobber.js                # Standalone editor (always-on, helper-only)
 ├── helper/
-│   └── edit-helper.js            # Optional Node server (zero deps)
+│   └── edit-helper.js            # Shared Node server (zero deps)
 ├── docs/
 │   ├── how-it-works.md           # Deep dive on source-DOM + patching
 │   ├── helper.md                 # Node helper setup and usage
-│   └── configuration.md          # Full config reference
+│   ├── configuration.md          # Full config reference
+│   └── skill-spec.md             # Skill development specification
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.md

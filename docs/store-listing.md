@@ -33,7 +33,7 @@ WHO THIS IS FOR
 
 Developers and designers who maintain static HTML sites and want a faster way to make small content changes without the VS Code round-trip. No CMS, no framework, no build step required.
 
-Open source under MIT: https://github.com/lironross/clobber
+Open source under MIT: https://github.com/savonge/clobber
 
 ## Category
 Developer Tools

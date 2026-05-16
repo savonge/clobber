@@ -25,9 +25,10 @@ The helper only accepts connections from localhost. It is not designed to be exp
 
 ## How it works
 
-Two endpoints:
+Three endpoints:
 
 - `GET /ping` returns `{ ok: true, root: "/absolute/path" }`. Clobber probes this on activation to check if the helper is available.
+- `GET /source?path=<relative>` returns the raw HTML of the requested file. Used by the standalone editor when opening files via `file://` (where `fetch()` can't read the page's own URL due to CORS). Path traversal is blocked.
 - `POST /save` accepts `{ filePath, html, images }` and writes the patched HTML and any replaced images to disk.
 
 Every write is preceded by a timestamped backup of the existing file to the backup directory.

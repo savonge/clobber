@@ -102,6 +102,23 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && req.url.startsWith('/source')) {
+    try {
+      const u = new URL(req.url, 'http://localhost');
+      const filePath = u.searchParams.get('path');
+      if (!filePath) throw new Error('Missing ?path= parameter');
+      const full = safeJoin(filePath);
+      const content = fs.readFileSync(full, 'utf8');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.end(content);
+    } catch (err) {
+      res.statusCode = 400;
+      res.setHeader('Content-Type','application/json');
+      res.end(JSON.stringify({ ok:false, error: err.message }));
+    }
+    return;
+  }
+
   if (req.method !== 'POST' || req.url !== '/save') {
     res.statusCode = 404; res.end('Not found'); return;
   }

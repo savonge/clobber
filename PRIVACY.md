@@ -44,4 +44,4 @@ If this policy changes, the updated version will be posted in the GitHub reposit
 
 ## Contact
 
-For questions about this policy, open an issue on the GitHub repository: https://github.com/lironross/clobber
+For questions about this policy, open an issue on the GitHub repository: https://github.com/savonge/clobber

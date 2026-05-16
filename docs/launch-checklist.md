@@ -20,7 +20,7 @@
 - [x] Phase 2 code cleanup complete (rename em-* to clobber-*, data-edit attributes, etc.)
 - [x] All docs reference final naming conventions
 - [x] Fix file:// loadSource() bug (fetch CORS fallback via FS Access)
-- [x] README badge URLs updated (lironross)
+- [x] README badge URLs updated (savonge)
 - [x] Helper docs updated (CLOBBER_ROOT, CLOBBER_BACKUP_DIR, .clobber-backups)
 - [ ] SECURITY.md: enable private vulnerability reporting in repo Settings > Security
 - [ ] Repository description set: "Cmd-click to edit your own static sites. Chrome extension."

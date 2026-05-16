@@ -30,7 +30,9 @@
     "service_worker": "background/service-worker.js"
   },
   "host_permissions": [
-    "http://localhost:*/*",
     "file://*/*"
+  ],
+  "optional_host_permissions": [
+    "http://localhost:*/*"
   ]
 }

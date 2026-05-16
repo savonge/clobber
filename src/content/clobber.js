@@ -94,10 +94,6 @@
       blockSelectors: 'nav, footer',
       suspiciousBytes: 5000,
       suspiciousPct: 10,
-      imageMaxWidth: 1200,
-      imageMaxHeight: 1200,
-      imageQuality: 0.85,
-      imageRetina: 2,
       entityMap: {
         ' ': '&nbsp;',
         '·': '&middot;',
@@ -323,21 +319,16 @@
     document.body.appendChild(banner);
     const countEl = banner.querySelector('[data-clobber-count]');
 
-    // Deploy button: added dynamically if deploy targets are configured
+    // Deploy button: added dynamically if hook URL is configured
     let deployBtn = null;
-    let deployTargets = [];
-    chrome.storage.local.get(['clobber-deploy-targets', 'clobber-deploy-hook'], (result) => {
-      // Support new targets array or migrate old single hook
-      if (result['clobber-deploy-targets'] && result['clobber-deploy-targets'].length) {
-        deployTargets = result['clobber-deploy-targets'];
-        addDeployButton();
-      } else if (result['clobber-deploy-hook']) {
-        deployTargets = [{ name: 'Default', url: result['clobber-deploy-hook'], method: 'POST', headers: {}, body: '' }];
-        addDeployButton();
+    chrome.storage.local.get(['clobber-deploy-hook'], (result) => {
+      const hookUrl = result['clobber-deploy-hook'];
+      if (hookUrl) {
+        addDeployButton(hookUrl);
       }
     });
 
-    function addDeployButton(){
+    function addDeployButton(hookUrl){
       if (deployBtn) return;
       const sep = document.createElement('span');
       sep.className = 'clobber-sep';
@@ -346,6 +337,7 @@
       deployBtn.setAttribute('data-act', 'deploy');
       deployBtn.textContent = 'Deploy';
       banner.appendChild(deployBtn);
+      deployBtn._hookUrl = hookUrl;
     }
 
     banner.addEventListener('click', e => {
@@ -605,64 +597,19 @@
       fileInput.value = '';
       fileInput.click();
     }
-
-    // ── image optimization (canvas resize + compress) ────────────────
-    async function optimizeImage(file, liveImg){
-      const displayW = liveImg.clientWidth * CFG.imageRetina;
-      const displayH = liveImg.clientHeight * CFG.imageRetina;
-      const maxW = Math.min(displayW || CFG.imageMaxWidth, CFG.imageMaxWidth);
-      const maxH = Math.min(displayH || CFG.imageMaxHeight, CFG.imageMaxHeight);
-
-      const img = await new Promise((resolve, reject) => {
-        const i = new Image();
-        i.onload = () => resolve(i);
-        i.onerror = reject;
-        i.src = URL.createObjectURL(file);
-      });
-      const srcW = img.naturalWidth, srcH = img.naturalHeight;
-      URL.revokeObjectURL(img.src);
-
-      if (srcW <= maxW && srcH <= maxH) return file;
-
-      let w = srcW, h = srcH;
-      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-      if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-
-      const mime = (file.type === 'image/png') ? 'image/png'
-                 : (file.type === 'image/webp') ? 'image/webp'
-                 : 'image/jpeg';
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, CFG.imageQuality));
-      const optimized = new File([blob], file.name, { type: mime });
-
-      const saved = file.size - optimized.size;
-      if (saved > 0) {
-        console.log('[clobber] optimized:', srcW + 'x' + srcH, '→', w + 'x' + h,
-                    '(' + Math.round(file.size/1024) + 'K → ' + Math.round(optimized.size/1024) + 'K)');
-      }
-      return saved > 0 ? optimized : file;
-    }
-
-    async function onImagePicked(liveImg, file){
+    function onImagePicked(liveImg, file){
+      const blobUrl = URL.createObjectURL(file);
       const sourceImg = pairMap.get(liveImg) || null;
       const originalSrc = liveImg.dataset.clobberOrigSrc
                        || (sourceImg && sourceImg.getAttribute('src'))
                        || liveImg.getAttribute('src');
       const filename = originalSrc.split('?')[0].split('/').pop();
       const oldW = liveImg.naturalWidth, oldH = liveImg.naturalHeight;
-
-      const optimized = await optimizeImage(file, liveImg);
-
-      const blobUrl = URL.createObjectURL(optimized);
       const probe = new Image();
       probe.onload = () => {
         liveImg.dataset.clobberOrigSrc = originalSrc;
         liveImg.src = blobUrl;
-        imageQueue.set(blobUrl, { file: optimized, originalSrc, sourceImg, filename });
+        imageQueue.set(blobUrl, { file, originalSrc, sourceImg, filename });
         updateDirty();
         if (oldW && oldH) {
           const oldAR = oldW/oldH, newAR = probe.width/probe.height;
@@ -769,23 +716,12 @@
 
     // ── deploy ───────────────────────────────────────────────────────
     function deploy(){
-      if (!deployTargets.length) { toast('No deploy targets configured','warn'); return; }
-      if (deployBtn) deployBtn.textContent = '…';
-      chrome.runtime.sendMessage({ action: 'deploy', targets: deployTargets }, (response) => {
-        if (chrome.runtime.lastError) {
-          toast('Deploy failed: extension error','warn');
-          if (deployBtn) deployBtn.textContent = 'Deploy';
-          return;
-        }
-        if (response && response.ok) {
-          toast('Deployed to ' + deployTargets.length + ' target' + (deployTargets.length > 1 ? 's' : ''));
-        } else {
-          const failed = response && response.results
-            ? response.results.filter(r => !r.ok).map(r => r.name).join(', ')
-            : '';
-          toast('Deploy failed' + (failed ? ': ' + failed : ''),'warn');
-        }
-        if (deployBtn) deployBtn.textContent = 'Deploy';
+      const hookUrl = deployBtn && deployBtn._hookUrl;
+      if (!hookUrl) { toast('No deploy hook configured','warn'); return; }
+      chrome.runtime.sendMessage({ action: 'deploy', hookUrl }, (response) => {
+        if (chrome.runtime.lastError) { toast('Deploy failed: extension error','warn'); return; }
+        if (response && response.ok) toast('Deployed');
+        else toast('Deploy failed' + (response && response.error ? ': ' + response.error : ''),'warn');
       });
     }
 

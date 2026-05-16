@@ -13,33 +13,10 @@
     </label>
   </div>
   <div class="status" id="status">Checking…</div>
-
   <div class="section">
-    <div class="section-header">
-      <label class="label">Deploy targets</label>
-      <button class="btn-add" id="add-target" title="Add target">+</button>
-    </div>
-    <div id="targets-list"></div>
-    <div id="target-form" class="target-form hidden">
-      <input type="text" id="tf-name" placeholder="Name (e.g. Production)" spellcheck="false">
-      <input type="text" id="tf-url" placeholder="https://api.vercel.com/v1/…" spellcheck="false">
-      <details class="advanced">
-        <summary>Advanced</summary>
-        <select id="tf-method">
-          <option value="POST" selected>POST</option>
-          <option value="PUT">PUT</option>
-          <option value="GET">GET</option>
-        </select>
-        <textarea id="tf-headers" placeholder="Headers (one per line)&#10;Authorization: Bearer token" rows="2" spellcheck="false"></textarea>
-        <textarea id="tf-body" placeholder="Body (optional)" rows="2" spellcheck="false"></textarea>
-      </details>
-      <div class="form-actions">
-        <button class="btn-save" id="tf-save">Save</button>
-        <button class="btn-cancel" id="tf-cancel">Cancel</button>
-      </div>
-    </div>
+    <label class="label">Deploy hook URL</label>
+    <input type="text" id="hook-url" placeholder="https://api.vercel.com/v1/…" spellcheck="false">
   </div>
-
   <div class="section">
     <label class="label">Project folder</label>
     <div class="folder" id="folder">Not set</div>

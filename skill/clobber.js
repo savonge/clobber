@@ -36,10 +36,6 @@
     blockSelectors: '',
     suspiciousBytes: 5000,
     suspiciousPct: 10,
-    imageMaxWidth: 1200,
-    imageMaxHeight: 1200,
-    imageQuality: 0.85,
-    imageRetina: 2,
     textTags: 'p,h1,h2,h3,h4,h5,h6,a,span,li,td,th,figcaption,blockquote,label,button,dt,dd',
     entityMap: {
       ' ': '&nbsp;',
@@ -516,72 +512,19 @@
     fileInput.value = '';
     fileInput.click();
   }
-
-  // ── image optimization (canvas resize + compress) ────────────────
-  async function optimizeImage(file, liveImg){
-    // Determine target dimensions from rendered size (retina) and max config
-    const displayW = liveImg.clientWidth * CFG.imageRetina;
-    const displayH = liveImg.clientHeight * CFG.imageRetina;
-    const maxW = Math.min(displayW || CFG.imageMaxWidth, CFG.imageMaxWidth);
-    const maxH = Math.min(displayH || CFG.imageMaxHeight, CFG.imageMaxHeight);
-
-    // Load the file into an Image to get natural dimensions
-    const img = await new Promise((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = reject;
-      i.src = URL.createObjectURL(file);
-    });
-    const srcW = img.naturalWidth, srcH = img.naturalHeight;
-    URL.revokeObjectURL(img.src);
-
-    // Skip if already smaller than target
-    if (srcW <= maxW && srcH <= maxH) return file;
-
-    // Compute target dimensions preserving aspect ratio
-    let w = srcW, h = srcH;
-    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-    if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
-
-    // Draw to canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, w, h);
-
-    // Export as blob — try original MIME type, fallback to JPEG
-    const mime = (file.type === 'image/png') ? 'image/png'
-               : (file.type === 'image/webp') ? 'image/webp'
-               : 'image/jpeg';
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, CFG.imageQuality));
-    const optimized = new File([blob], file.name, { type: mime });
-
-    const saved = file.size - optimized.size;
-    if (saved > 0) {
-      console.log('[clobber] optimized:', srcW + 'x' + srcH, '→', w + 'x' + h,
-                  '(' + Math.round(file.size/1024) + 'K → ' + Math.round(optimized.size/1024) + 'K)');
-    }
-    // If optimization made it larger (e.g. small PNGs), return original
-    return saved > 0 ? optimized : file;
-  }
-
-  async function onImagePicked(liveImg, file){
+  function onImagePicked(liveImg, file){
+    const blobUrl = URL.createObjectURL(file);
     const sourceImg = pairMap.get(liveImg) || null;
     const originalSrc = liveImg.dataset.clobberOrigSrc
                      || (sourceImg && sourceImg.getAttribute('src'))
                      || liveImg.getAttribute('src');
     const filename = originalSrc.split('?')[0].split('/').pop();
     const oldW = liveImg.naturalWidth, oldH = liveImg.naturalHeight;
-
-    // Optimize before queueing
-    const optimized = await optimizeImage(file, liveImg);
-
-    const blobUrl = URL.createObjectURL(optimized);
     const probe = new Image();
     probe.onload = () => {
       liveImg.dataset.clobberOrigSrc = originalSrc;
       liveImg.src = blobUrl;
-      imageQueue.set(blobUrl, { file: optimized, originalSrc, sourceImg, filename });
+      imageQueue.set(blobUrl, { file, originalSrc, sourceImg, filename });
       updateDirty();
       if (oldW && oldH) {
         const oldAR = oldW/oldH, newAR = probe.width/probe.height;

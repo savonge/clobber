@@ -561,10 +561,15 @@
 
   // ── image path resolution ────────────────────────────────────────
   function pageDir(){ return FILE_PATH.split('/').slice(0,-1).join('/'); }
-  function resolveImgPath(originalSrc){
+  function resolveImgPath(originalSrc, file){
     if (/^https?:/.test(originalSrc)) {
       // External URL — map to local images/ directory
-      const urlFilename = originalSrc.split('?')[0].split('/').pop();
+      let urlFilename = originalSrc.split('?')[0].split('/').pop();
+      // If URL has no extension, derive from MIME type or default to .jpg
+      if (!urlFilename.includes('.')) {
+        const ext = file && file.type ? ('.' + file.type.split('/').pop().replace('jpeg','jpg')) : '.jpg';
+        urlFilename += ext;
+      }
       const d = pageDir();
       return d ? d + '/images/' + urlFilename : 'images/' + urlFilename;
     }
@@ -638,7 +643,7 @@
     const images = [];
     for (const q of imageQueue.values()) {
       images.push({
-        targetPath: resolveImgPath(q.originalSrc),
+        targetPath: resolveImgPath(q.originalSrc, q.file),
         filename:   q.filename,
         dataUrl:    await fileToDataUrl(q.file)
       });

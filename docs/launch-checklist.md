@@ -11,7 +11,7 @@
 - [ ] Privacy policy URL live (host PRIVACY.md on the repo or a standalone page)
 - [x] Store listing copy finalized (see docs/store-listing.md)
 - [x] manifest.json version set to 1.0.0
-- [ ] Test the extension from a clean install (load unpacked, edit, save, verify file)
+- [x] Test the extension from a clean install (load unpacked, edit, save, verify file)
 - [x] Pay the Chrome Web Store developer registration fee ($5 one-time)
 - [ ] Submit at https://chrome.google.com/webstore/devconsole
 

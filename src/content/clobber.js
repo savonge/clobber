@@ -646,15 +646,15 @@
 
     // ── image path resolution ────────────────────────────────────────
     function pageDir(){ return FILE_PATH.split('/').slice(0,-1).join('/'); }
-    function resolveImgPath(originalSrc){
+    function resolveImgPath(originalSrc, file){
       // External URLs → save locally using just the filename in an images/ dir
-      if (/^https?:\/\//.test(originalSrc)) {
-        const name = originalSrc.split('?')[0].split('/').pop() || 'image.png';
-        const d = pageDir();
-        return d ? d + '/images/' + name : 'images/' + name;
-      }
-      if (originalSrc.startsWith('//')) {
-        const name = originalSrc.split('?')[0].split('/').pop() || 'image.png';
+      if (/^https?:\/\//.test(originalSrc) || originalSrc.startsWith('//')) {
+        let name = originalSrc.split('?')[0].split('/').pop() || 'image.png';
+        // If URL has no extension, derive from MIME type or default to .jpg
+        if (!name.includes('.')) {
+          const ext = file && file.type ? ('.' + file.type.split('/').pop().replace('jpeg','jpg')) : '.jpg';
+          name += ext;
+        }
         const d = pageDir();
         return d ? d + '/images/' + name : 'images/' + name;
       }
@@ -748,7 +748,7 @@
           let htmlToWrite = newHtml;
           for (const q of imageQueue.values()) {
             if (isExternalSrc(q.originalSrc)) {
-              const localPath = resolveImgPath(q.originalSrc);
+              const localPath = resolveImgPath(q.originalSrc, q.file);
               htmlToWrite = htmlToWrite.split(q.originalSrc).join(localPath);
             }
           }
@@ -762,7 +762,7 @@
           for (const q of imageQueue.values()) {
             try {
               const buf = await q.file.arrayBuffer();
-              const target = resolveImgPath(q.originalSrc);
+              const target = resolveImgPath(q.originalSrc, q.file);
               backupFile(root, target).catch(()=>{});
               await writeFile(root, target, buf);
             } catch (imgErr) {
@@ -790,7 +790,7 @@
         const images = [];
         for (const q of imageQueue.values()) {
           images.push({
-            targetPath: resolveImgPath(q.originalSrc),
+            targetPath: resolveImgPath(q.originalSrc, q.file),
             filename:   q.filename,
             dataUrl:    await fileToDataUrl(q.file)
           });

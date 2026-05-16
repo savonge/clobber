@@ -409,10 +409,21 @@
         }
         // For file:// (and fetch failures), fall through to FS Access API
         if (!html) {
-          const root = await ensureRoot();
-          const fh = await fileHandleAt(root, FILE_PATH, false);
-          const file = await fh.getFile();
-          html = await file.text();
+          let root = await ensureRoot();
+          try {
+            const fh = await fileHandleAt(root, FILE_PATH, false);
+            const file = await fh.getFile();
+            html = await file.text();
+          } catch (fsErr) {
+            // File not found in stored directory — clear it and ask user to re-pick
+            console.warn('[clobber] file not found in stored folder, re-picking:', fsErr.message);
+            rootDirHandle = null;
+            try { await idbOp('delete', HKEY); } catch(_){}
+            root = await ensureRoot();
+            const fh = await fileHandleAt(root, FILE_PATH, false);
+            const file = await fh.getFile();
+            html = await file.text();
+          }
         }
         sourceText = html;
         sourceDoc  = new DOMParser().parseFromString(html, 'text/html');
@@ -636,12 +647,26 @@
     // ── image path resolution ────────────────────────────────────────
     function pageDir(){ return FILE_PATH.split('/').slice(0,-1).join('/'); }
     function resolveImgPath(originalSrc){
-      if (/^https?:/.test(originalSrc)) return originalSrc;
+      // External URLs → save locally using just the filename in an images/ dir
+      if (/^https?:\/\//.test(originalSrc)) {
+        const name = originalSrc.split('?')[0].split('/').pop() || 'image.png';
+        const d = pageDir();
+        return d ? d + '/images/' + name : 'images/' + name;
+      }
+      if (originalSrc.startsWith('//')) {
+        const name = originalSrc.split('?')[0].split('/').pop() || 'image.png';
+        const d = pageDir();
+        return d ? d + '/images/' + name : 'images/' + name;
+      }
       if (originalSrc.startsWith('/'))      return originalSrc.slice(1);
       if (originalSrc.startsWith('../../')) return originalSrc.replace(/^\.\.\/\.\.\//,'');
       if (originalSrc.startsWith('../'))    return originalSrc.replace(/^\.\.\//,'');
       const d = pageDir();
       return d ? d + '/' + originalSrc : originalSrc;
+    }
+    // Check if source points externally (needs src attribute update after save)
+    function isExternalSrc(src){
+      return /^(https?:)?\/\//.test(src);
     }
 
     // ── build patched HTML ───────────────────────────────────────────
@@ -718,21 +743,41 @@
       if (typeof window.showDirectoryPicker === 'function') {
         try {
           const root = await ensureRoot();
+
+          // If any replaced images had external URLs, rewrite src to local paths
+          let htmlToWrite = newHtml;
+          for (const q of imageQueue.values()) {
+            if (isExternalSrc(q.originalSrc)) {
+              const localPath = resolveImgPath(q.originalSrc);
+              htmlToWrite = htmlToWrite.split(q.originalSrc).join(localPath);
+            }
+          }
+
           // Backup must finish reading before we overwrite the same file
           await backupFile(root, FILE_PATH);
-          await writeFile(root, FILE_PATH, newHtml);
-          // Images: read buffers first, then fire-and-forget backups + parallel writes
-          const imgWrites = [];
+          await writeFile(root, FILE_PATH, htmlToWrite);
+
+          // Write replacement images individually (don't let one failure kill the rest)
+          let imgFails = 0;
           for (const q of imageQueue.values()) {
-            const buf = await q.file.arrayBuffer();
-            const target = resolveImgPath(q.originalSrc);
-            backupFile(root, target).catch(()=>{});
-            imgWrites.push(writeFile(root, target, buf));
+            try {
+              const buf = await q.file.arrayBuffer();
+              const target = resolveImgPath(q.originalSrc);
+              backupFile(root, target).catch(()=>{});
+              await writeFile(root, target, buf);
+            } catch (imgErr) {
+              imgFails++;
+              console.warn('[clobber] image write failed:', q.originalSrc, imgErr.message);
+            }
           }
-          if (imgWrites.length) await Promise.all(imgWrites);
-          toast('Saved · ' + FILE_PATH.split('/').pop());
+          if (imgFails > 0) {
+            toast('Saved HTML · ' + imgFails + ' image(s) failed','warn');
+          } else {
+            toast('Saved · ' + FILE_PATH.split('/').pop());
+          }
           // Defer heavy re-parse so toast renders immediately
-          setTimeout(() => afterSave(newHtml), 0);
+          // Use htmlToWrite (which may have updated src attrs) as the new baseline
+          setTimeout(() => afterSave(htmlToWrite), 0);
           return;
         } catch (err) {
           if (err && err.name === 'AbortError') { toast('Cancelled','warn'); return; }
@@ -821,7 +866,12 @@
         const stored = await idbOp('get', HKEY);
         if (stored && await verifyRW(stored)) { rootDirHandle = stored; return rootDirHandle; }
       } catch(_){}
-      toast('Pick the project folder…');
+      const ok = confirm(
+        'Clobber needs access to your project folder.\n\n' +
+        'Choose the folder that contains "' + FILE_PATH + '" and any images you want to replace.\n\n' +
+        'Clobber will read and write files in this folder. A file picker will open next.'
+      );
+      if (!ok) throw new DOMException('User cancelled folder picker', 'AbortError');
       rootDirHandle = await window.showDirectoryPicker({
         id: 'clobber-root', mode: 'readwrite', startIn: 'documents'
       });

@@ -12,7 +12,7 @@
 - [x] Store listing copy finalized (see docs/store-listing.md)
 - [x] manifest.json version set to 1.0.0
 - [ ] Test the extension from a clean install (load unpacked, edit, save, verify file)
-- [ ] Pay the Chrome Web Store developer registration fee ($5 one-time)
+- [x] Pay the Chrome Web Store developer registration fee ($5 one-time)
 - [ ] Submit at https://chrome.google.com/webstore/devconsole
 
 ## Before GitHub public release
@@ -22,7 +22,7 @@
 - [x] Fix file:// loadSource() bug (fetch CORS fallback via FS Access)
 - [x] README badge URLs updated (savonge)
 - [x] Helper docs updated (CLOBBER_ROOT, CLOBBER_BACKUP_DIR, .clobber-backups)
-- [ ] SECURITY.md: enable private vulnerability reporting in repo Settings > Security
+- [x] SECURITY.md: enable private vulnerability reporting in repo Settings > Security
 - [ ] Repository description set: "Cmd-click to edit your own static sites. Chrome extension."
 - [ ] Repository topics set: chrome-extension, static-sites, html-editor, developer-tools
 - [ ] Create a GitHub Release tagged v1.0.0 with a zip of the src/ folder
